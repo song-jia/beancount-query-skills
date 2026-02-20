@@ -45,12 +45,23 @@ For each user query, follow these steps:
 
 ## Output Formatting
 
-- Present tabular data as **Markdown tables**.
 - Format monetary amounts with **2 decimal places** and currency suffix (e.g., `1,234.56 CNY`).
-- For result sets **> 20 rows**: show the top entries, then a summary row with totals. Mention the full count.
-- For **single-value** results (e.g., net worth): present inline, no table needed.
 - For **income** amounts: negate the values so they display as positive numbers (income is stored as negative in beancount).
 - For **liability** amounts: show as positive debt amounts (negate the negative balances).
+
+### When to use a Markdown table
+
+Use a Markdown table whenever `bean-query` returns **rows with named columns** — even if there is only one row. The table must include a header row and all result columns.
+
+Examples that **require a table**:
+- Account balances (one row per account, columns: account + amount)
+- Expense breakdown (one row per category)
+- Transaction list (one row per transaction)
+- A single account's balance — still a table with one data row
+
+The **only** exception where a table is not needed: a pure scalar result that has no associated label, such as a computed total that the user explicitly asked for as a single number (e.g., "what is my total net worth?"). In that case, present the number inline in bold, then add a supporting table for the breakdown (assets vs. liabilities).
+
+- For result sets **> 20 rows**: show the top entries, then a summary row with totals. Mention the full count.
 
 ## Safety Constraints
 
