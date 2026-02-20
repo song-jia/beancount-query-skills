@@ -1,0 +1,141 @@
+;; Minimal sample ledger for testing beancount-query skill
+;; Contains representative data covering all 5 account types, multiple
+;; categories, date ranges, and edge cases for query template validation.
+
+option "operating_currency" "CNY"
+
+;; === Account Definitions ===
+1970-01-01 open Assets:Bank:ICBC
+1970-01-01 open Assets:Bank:CMB
+1970-01-01 open Assets:Cash
+1970-01-01 open Assets:Alipay
+1970-01-01 open Liabilities:CreditCard:ICBC
+1970-01-01 open Liabilities:Mortgage
+1970-01-01 open Equity:Opening-balances
+1970-01-01 open Equity:Budget:Travel
+1970-01-01 open Equity:Budget:Electronics
+1970-01-01 open Income:Salary
+1970-01-01 open Income:Interest
+1970-01-01 open Income:Freelance
+1970-01-01 open Expenses:Food:Dining
+1970-01-01 open Expenses:Food:Groceries
+1970-01-01 open Expenses:Transport:Gas
+1970-01-01 open Expenses:Transport:Taxi
+1970-01-01 open Expenses:Housing:Rent
+1970-01-01 open Expenses:Entertainment
+1970-01-01 open Expenses:Education
+
+;; === Opening Balances ===
+2024-01-01 txn "opening balance"
+  Assets:Bank:ICBC                           50000.00 CNY
+  Assets:Bank:CMB                            20000.00 CNY
+  Assets:Cash                                 3000.00 CNY
+  Assets:Alipay                              10000.00 CNY
+  Liabilities:Mortgage                     -500000.00 CNY
+  Equity:Opening-balances
+
+;; === 2024 Q1 Transactions ===
+2024-01-05 * "Salary" "January salary"
+  Assets:Bank:ICBC                           15000.00 CNY
+  Income:Salary
+
+2024-01-10 txn "Dining out"
+  Expenses:Food:Dining                         120.00 CNY
+  Assets:Alipay
+
+2024-01-15 txn "Groceries"
+  Expenses:Food:Groceries                      350.00 CNY
+  Assets:Cash
+
+2024-01-20 txn "Taxi"
+  Expenses:Transport:Taxi                       45.00 CNY
+  Assets:Alipay
+
+2024-01-25 txn "Rent"
+  Expenses:Housing:Rent                       3500.00 CNY
+  Assets:Bank:ICBC
+
+2024-01-31 txn "Mortgage payment"
+  Liabilities:Mortgage                        5000.00 CNY
+  Assets:Bank:ICBC
+
+2024-02-05 * "Salary" "February salary"
+  Assets:Bank:ICBC                           15000.00 CNY
+  Income:Salary
+
+2024-02-08 txn "Gas"
+  Expenses:Transport:Gas                       300.00 CNY
+  Assets:Bank:CMB
+
+2024-02-14 txn "Valentine dinner"
+  Expenses:Food:Dining                         580.00 CNY
+  Liabilities:CreditCard:ICBC
+
+2024-02-20 txn "Online course"
+  Expenses:Education                           999.00 CNY
+  Assets:Alipay
+
+2024-02-28 txn "Mortgage payment"
+  Liabilities:Mortgage                        5000.00 CNY
+  Assets:Bank:ICBC
+
+2024-03-05 * "Salary" "March salary"
+  Assets:Bank:ICBC                           15000.00 CNY
+  Income:Salary
+
+2024-03-10 txn "Movie tickets"
+  Expenses:Entertainment                        80.00 CNY
+  Assets:Alipay
+
+2024-03-15 txn "Groceries"
+  Expenses:Food:Groceries                      420.00 CNY
+  Assets:Cash
+
+2024-03-20 txn "Freelance income"
+  Assets:Bank:CMB                             3000.00 CNY
+  Income:Freelance
+
+2024-03-25 txn "Rent"
+  Expenses:Housing:Rent                       3500.00 CNY
+  Assets:Bank:ICBC
+
+2024-03-31 txn "Mortgage payment"
+  Liabilities:Mortgage                        5000.00 CNY
+  Assets:Bank:ICBC
+
+;; === 2024 Q2 Transactions ===
+2024-04-05 * "Salary" "April salary"
+  Assets:Bank:ICBC                           15000.00 CNY
+  Income:Salary
+
+2024-04-12 txn "Dining"
+  Expenses:Food:Dining                         200.00 CNY
+  Assets:Cash
+
+2024-04-18 txn "Gas"
+  Expenses:Transport:Gas                       280.00 CNY
+  Assets:Bank:CMB
+
+2024-04-25 txn "Rent"
+  Expenses:Housing:Rent                       3500.00 CNY
+  Assets:Bank:ICBC
+
+2024-04-30 txn "Mortgage payment"
+  Liabilities:Mortgage                        5000.00 CNY
+  Assets:Bank:ICBC
+
+2024-05-10 txn "Interest income"
+  Assets:Bank:ICBC                              85.50 CNY
+  Income:Interest
+
+2024-05-15 txn "Budget allocation - travel"
+  Equity:Budget:Travel                        2000.00 CNY
+  Assets:Bank:ICBC
+
+2024-05-20 txn "Budget allocation - electronics"
+  Equity:Budget:Electronics                   1500.00 CNY
+  Assets:Bank:ICBC
+
+2024-06-01 txn "Credit card repayment"
+  Liabilities:CreditCard:ICBC                  580.00 CNY
+  Assets:Bank:ICBC
