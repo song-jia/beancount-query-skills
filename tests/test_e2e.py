@@ -66,8 +66,12 @@ class E2ETest:
     expect_skill_loaded: bool = True
     expect_bean_query: bool = True
     bql_contains: list[str] = field(default_factory=list)
+    # Every string in this list must appear in the response text (case-insensitive)
     response_contains: list[str] = field(default_factory=list)
     response_not_contains: list[str] = field(default_factory=list)
+    # If set, the response must contain at least this many table data rows
+    # (lines that start with | and are not separator lines)
+    response_min_rows: int = 0
 
 
 @dataclass
@@ -93,67 +97,156 @@ class E2EResult:
 
 E2E_TESTS = [
     # Module 1: Account Listing
+    # Expected: all 19 accounts, one per row
     E2ETest(
         name="account_listing",
         prompt="List all accounts in sample.beancount",
         bql_contains=["account"],
-        response_contains=["Assets:Bank:ICBC", "Expenses:Food:Dining", "Income:Salary"],
+        response_contains=[
+            "Assets:Alipay",
+            "Assets:Bank:CMB",
+            "Assets:Bank:ICBC",
+            "Assets:Cash",
+            "Equity:Budget:Electronics",
+            "Equity:Budget:Travel",
+            "Equity:Opening-balances",
+            "Expenses:Education",
+            "Expenses:Entertainment",
+            "Expenses:Food:Dining",
+            "Expenses:Food:Groceries",
+            "Expenses:Housing:Rent",
+            "Expenses:Transport:Gas",
+            "Expenses:Transport:Taxi",
+            "Income:Freelance",
+            "Income:Interest",
+            "Income:Salary",
+            "Liabilities:CreditCard:ICBC",
+            "Liabilities:Mortgage",
+            "19",  # total count should be mentioned
+        ],
+        response_min_rows=19,
     ),
 
     # Module 2: Balance Inquiry
+    # Expected: single row with ICBC balance of 75,505.50 CNY
     E2ETest(
         name="balance_inquiry",
         prompt="What is the balance of Assets:Bank:ICBC in sample.beancount?",
         bql_contains=["ICBC"],
-        response_contains=["ICBC", "75,505"],
+        response_contains=[
+            "Assets:Bank:ICBC",
+            "75,505.50",
+            "CNY",
+        ],
+        response_min_rows=1,
     ),
 
     # Module 3: Net Worth
+    # Expected: net worth -371,288.50 CNY, assets 108,711.50, liabilities 480,000.00
     E2ETest(
         name="net_worth",
         prompt="What is my net worth based on sample.beancount?",
         bql_contains=["Assets", "Liabilities"],
-        response_contains=["371,288"],
+        response_contains=[
+            "371,288.50",
+            "108,711.50",
+            "480,000.00",
+            "CNY",
+        ],
     ),
 
     # Module 4: Expense Analysis
+    # Expected: 7 expense categories for Q1 2024, total 9,894.00
     E2ETest(
         name="expense_analysis",
         prompt="Show my expenses by category for Q1 2024 from sample.beancount",
         bql_contains=["Expenses"],
-        response_contains=["Rent", "7,000", "9,894"],
+        response_contains=[
+            "Expenses:Housing:Rent",
+            "7,000.00",
+            "Expenses:Education",
+            "999.00",
+            "Expenses:Food:Groceries",
+            "770.00",
+            "Expenses:Food:Dining",
+            "700.00",
+            "Expenses:Transport:Gas",
+            "300.00",
+            "Expenses:Entertainment",
+            "80.00",
+            "Expenses:Transport:Taxi",
+            "45.00",
+            "9,894.00",  # total
+        ],
+        response_min_rows=7,
     ),
 
     # Module 5: Income Analysis
+    # Expected: 3 income sources, total 63,085.50
     E2ETest(
         name="income_analysis",
         prompt="How much income did I receive in the first half of 2024? Use sample.beancount",
         bql_contains=["Income"],
-        response_contains=["Salary", "60,000"],
+        response_contains=[
+            "Income:Salary",
+            "60,000.00",
+            "Income:Freelance",
+            "3,000.00",
+            "Income:Interest",
+            "85.50",
+            "63,085.50",  # total
+        ],
+        response_min_rows=3,
     ),
 
     # Module 6: Trend Analysis
+    # Expected: 4 monthly rows for Jan-Apr 2024, total 13,874.00
     E2ETest(
         name="monthly_trend",
         prompt="Show monthly expense trend for 2024 from sample.beancount",
         bql_contains=["month"],
-        response_contains=["4,015", "1,879"],
+        response_contains=[
+            "4,015.00",   # Jan
+            "1,879.00",   # Feb
+            "4,000.00",   # Mar
+            "3,980.00",   # Apr
+            "13,874.00",  # total
+        ],
+        response_min_rows=4,
     ),
 
-    # Module 8: Transaction Journal
+    # Module 8: Transaction Journal — search by narration
+    # Expected: 4 salary transactions (Jan-Apr), each with 15,000.00
     E2ETest(
         name="search_transactions",
         prompt="Find all transactions mentioning 'Salary' in sample.beancount",
         bql_contains=["Salary"],
-        response_contains=["Salary", "15,000"],
+        response_contains=[
+            "January salary",
+            "February salary",
+            "March salary",
+            "April salary",
+            "2024-01-05",
+            "2024-02-05",
+            "2024-03-05",
+            "2024-04-05",
+        ],
+        response_min_rows=4,
     ),
 
     # Module 9: Liability Overview
+    # Expected: 2 liability accounts, total 480,000.00 CNY
     E2ETest(
         name="liabilities",
         prompt="Show all my liabilities from sample.beancount",
         bql_contains=["Liabilities"],
-        response_contains=["Mortgage", "480,000"],
+        response_contains=[
+            "Liabilities:CreditCard:ICBC",
+            "Liabilities:Mortgage",
+            "480,000.00",
+            "CNY",
+        ],
+        response_min_rows=2,
     ),
 ]
 
@@ -306,6 +399,22 @@ def run_e2e_test(test: E2ETest, ledger_dir: Path, timeout: int) -> E2EResult:
         if forbidden.lower() in response_lower:
             failures.append(f"Response unexpectedly contains: '{forbidden}'")
 
+    # 6. Response has at least the expected number of table data rows
+    if test.response_min_rows > 0:
+        table_rows = [
+            l for l in result.response_text.splitlines()
+            if l.strip().startswith("|")
+            and not set(l.replace("|", "").replace(" ", "")).issubset({"-"})
+            and not all(cell.strip().startswith("---") or cell.strip() == ""
+                        for cell in l.split("|") if cell.strip())
+        ]
+        # subtract the header row if present
+        data_rows = max(0, len(table_rows) - 1)
+        if data_rows < test.response_min_rows:
+            failures.append(
+                f"Response table has {data_rows} data rows, expected at least {test.response_min_rows}"
+            )
+
     if failures:
         result.failure_reason = "; ".join(failures)
     else:
@@ -408,8 +517,9 @@ def main():
             print(f"           reason: {result.failure_reason}")
 
         if args.verbose and result.response_text:
-            print(f"\n  --- Response (first 500 chars) ---")
-            print(f"  {result.response_text[:500]}")
+            print(f"\n  --- Response ---")
+            for line in result.response_text.splitlines():
+                print(f"  {line}")
             print(f"  --- End ---\n")
 
         if result.passed:
